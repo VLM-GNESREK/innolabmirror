@@ -1,0 +1,23 @@
+# === ENV ===
+.env
+.env.*
+
+# === SPRING BOOT ===
+backend/target/
+backend/*.log
+
+# === NODE / NEXT.JS ===
+frontend/node_modules/
+frontend/.next/
+frontend/out/
+
+# === OS ===
+.DS_Store
+Thumbs.db
+
+# === IDE ===
+.idea/
+.vscode/
+
+# === LOGS ===
+*.log
