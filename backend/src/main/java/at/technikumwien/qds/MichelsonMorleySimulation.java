@@ -1,6 +1,6 @@
 package at.technikumwien.qds;
 
-import at.technikumwien.qds.core.MichelsonMorleyInterferometer;
+import at.technikumwien.qds.simulation.MichelsonMorleyInterferometer;
 import at.technikumwien.qds.model.Photon;
 
 import java.util.concurrent.Executors;
