@@ -9,7 +9,7 @@ import java.util.*;
 
 @RestController
 @RequestMapping("/api/simulation")
-@CrossOrigin(origins = "http://localhost:4200")
+@CrossOrigin(origins = "http://localhost:3000")
 @Tag(name = "Simulation", description = "Quantum bomb tester simulation endpoints")
 public class SimulationController {
 
