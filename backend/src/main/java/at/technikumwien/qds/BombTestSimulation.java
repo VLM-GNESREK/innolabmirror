@@ -1,6 +1,6 @@
 package at.technikumwien.qds;
 
-import at.technikumwien.qds.core.BombTesterInterferometer;
+import at.technikumwien.qds.simulation.BombTesterInterferometer;
 import at.technikumwien.qds.model.Bomb;
 
 public class BombTestSimulation {

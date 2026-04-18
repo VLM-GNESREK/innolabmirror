@@ -1,5 +1,4 @@
-package at.technikumwien.qds.core;
-
+package at.technikumwien.qds.simulation;
 import at.technikumwien.qds.model.Photon;
 import at.technikumwien.qds.model.QuantumObject;
 

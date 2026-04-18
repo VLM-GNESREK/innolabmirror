@@ -1,7 +1,6 @@
 package at.technikumwien.qds;
 
-import at.technikumwien.qds.core.Interferometer;
-import at.technikumwien.qds.core.MachZehnderInterferometer;
+import at.technikumwien.qds.simulation.MachZehnderInterferometer;
 import at.technikumwien.qds.model.Photon;
 
 import java.util.concurrent.Executors;

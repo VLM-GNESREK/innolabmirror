@@ -1,4 +1,4 @@
-package at.technikumwien.qds.core;
+package at.technikumwien.qds.simulation;
 
 import java.util.concurrent.atomic.AtomicInteger;
 
