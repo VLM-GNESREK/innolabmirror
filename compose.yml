@@ -1,20 +1,18 @@
 services:
   backend:
-    build:
-      context: ./backend
-    container_name: quantum-backend
+    build: ./backend
     ports:
       - "8080:8080"
     environment:
       SPRING_PROFILES_ACTIVE: docker
+      SERVER_PORT: 8080
 
   frontend:
-    build:
-      context: ./frontend
-    container_name: quantum-frontend
+    build: ./frontend
     ports:
       - "3000:3000"
     environment:
+      NODE_ENV: development
       NEXT_PUBLIC_API_URL: http://localhost:8080
     depends_on:
       - backend
