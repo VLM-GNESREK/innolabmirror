@@ -1,262 +1,231 @@
 "use client";
 
-import { useState, useCallback } from "react";
-import { InterferometerDiagram } from "@/components/interferometer-diagram";
-import { StatisticsPanel } from "@/components/statistics-panel";
-import { SimulationControls } from "@/components/simulation-controls";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { useMemo, useState } from "react";
 import { Info } from "lucide-react";
 
-interface ExperimentResult {
-  id: number;
-  live: boolean;
-  exploded: boolean;
-  safe: boolean;
-  path: "A" | "B";
-  timestamp: Date;
-}
+import {
+  ExperimentSidebar,
+  type ExperimentKey,
+} from "@/components/experiment-sidebar";
+import { InterferometerDiagram } from "@/components/interferometer-diagram";
+import { StaticExperimentDiagram } from "@/components/static-experiment-diagram";
+import { StaticExperimentPanel } from "@/components/static-experiment-panel";
+import { StatisticsPanel } from "@/components/statistics-panel";
+import { SimulationControls } from "@/components/simulation-controls";
+import { useBombTester } from "@/hooks/use-bomb-tester";
+import { useMachZehnder } from "@/hooks/use-mach-zehnder";
+import { useMichelsonMorley } from "@/hooks/use-michelson-morley";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
-interface PhotonPath {
-  id: number;
-  path: "A" | "B";
-  exploded: boolean;
-  safe: boolean;
-}
-
-interface Statistics {
-  totalExperiments: number;
-  liveBombs: number;
-  dummyBombs: number;
-  safelyIdentified: number;
-  exploded: number;
-  detectorD2: number;
-}
+const experimentContent: Record<
+  ExperimentKey,
+  {
+    title: string;
+    description: string;
+  }
+> = {
+  "bomb-tester": {
+    title: "Elitzur-Vaidman Bomb Tester",
+    description:
+      "A quantum mechanics thought experiment demonstrating interaction-free measurement. This interferometer can detect whether a bomb is live without detonating it.",
+  },
+  "mach-zehnder": {
+    title: "Mach-Zehnder Interferometer",
+    description:
+      "A simple two-path interferometer that shows how beam splitters and mirrors recombine light into interference patterns.",
+  },
+  "michelson-morley": {
+    title: "Michelson-Morley Interferometer",
+    description:
+      "A two-arm setup used to compare path lengths and observe how phase differences change the interference result at the detector.",
+  },
+};
 
 export default function SimulationPage() {
-  const [experiments, setExperiments] = useState<ExperimentResult[]>([]);
-  const [currentPath, setCurrentPath] = useState<PhotonPath | null>(null);
-  const [isRunning, setIsRunning] = useState(false);
-  const [batchCount, setBatchCount] = useState(100);
-  const [connectionError, setConnectionError] = useState<string | null>(null);
+  const [activeExperiment, setActiveExperiment] =
+    useState<ExperimentKey>("bomb-tester");
 
-  const [stats, setStats] = useState<Statistics>({
-    totalExperiments: 0,
-    liveBombs: 0,
-    dummyBombs: 0,
-    safelyIdentified: 0,
-    exploded: 0,
-    detectorD2: 0,
-  });
+  const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080";
+  const bombTester = useBombTester(API_BASE_URL);
+  const machZehnder = useMachZehnder(API_BASE_URL);
+  const michelsonMorley = useMichelsonMorley(API_BASE_URL);
 
-  const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080"; //needs to be moved
-  const runExperiment = useCallback(async () => {
-    try {
-      const response = await fetch(`${API_BASE_URL}/api/simulation/run`);
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-      const data = await response.json();
-      setConnectionError(null);
-
-      const result: ExperimentResult = {
-        id: experiments.length + 1,
-        live: data.live,
-        exploded: data.exploded,
-        safe: data.safe > 0,
-        path: data.path,
-        timestamp: new Date(),
-      };
-
-      return result;
-    } catch {
-      setConnectionError(
-        "Unable to connect to Spring Boot backend. Make sure it is running."
-      );
-      return null;
-    }
-  }, [experiments.length]);
-
-  const updateStats = useCallback((result: ExperimentResult) => {
-    setStats((prev) => ({
-      totalExperiments: prev.totalExperiments + 1,
-      liveBombs: prev.liveBombs + (result.live ? 1 : 0),
-      dummyBombs: prev.dummyBombs + (result.live ? 0 : 1),
-      safelyIdentified: prev.safelyIdentified + (result.safe ? 1 : 0),
-      exploded: prev.exploded + (result.exploded ? 1 : 0),
-      detectorD2:
-        prev.detectorD2 + (!result.safe && !result.exploded ? 1 : 0),
-    }));
-  }, []);
-
-  const handleRunSingle = useCallback(async () => {
-    setIsRunning(true);
-
-    const result = await runExperiment();
-    if (result) {
-      setCurrentPath({
-        id: result.id,
-        path: result.path,
-        exploded: result.exploded,
-        safe: result.safe,
-      });
-
-      // Wait for animation to complete
-      setTimeout(() => {
-        setExperiments((prev) => [...prev, result]);
-        updateStats(result);
-        setIsRunning(false);
-      }, 1600);
-    } else {
-      setIsRunning(false);
-    }
-  }, [runExperiment, updateStats]);
-
-  const handleRunBatch = useCallback(
-    async (count: number) => {
-      setIsRunning(true);
-      setCurrentPath(null);
-
-      const newExperiments: ExperimentResult[] = [];
-
-      for (let i = 0; i < count; i++) {
-        const result = await runExperiment();
-        if (result) {
-          result.id = experiments.length + newExperiments.length + 1;
-          newExperiments.push(result);
-          updateStats(result);
-        } else {
-          break;
-        }
-
-        // Small delay between requests to not overwhelm the backend
-        if (i < count - 1) {
-          await new Promise((resolve) => setTimeout(resolve, 50));
-        }
-      }
-
-      setExperiments((prev) => [...prev, ...newExperiments]);
-      setIsRunning(false);
-    },
-    [runExperiment, experiments.length, updateStats]
+  const activeContent = useMemo(
+    () => experimentContent[activeExperiment],
+    [activeExperiment]
   );
 
-  const handleReset = useCallback(() => {
-    setExperiments([]);
-    setCurrentPath(null);
-    setStats({
-      totalExperiments: 0,
-      liveBombs: 0,
-      dummyBombs: 0,
-      safelyIdentified: 0,
-      exploded: 0,
-      detectorD2: 0,
-    });
-  }, []);
+  const isBombTester = activeExperiment === "bomb-tester";
+  const activeAnimatedPath = isBombTester
+    ? bombTester.currentPath
+    : activeExperiment === "mach-zehnder"
+      ? machZehnder.currentPath
+      : michelsonMorley.currentPath;
+  const activeIsRunning = isBombTester
+    ? bombTester.isRunning
+    : activeExperiment === "mach-zehnder"
+      ? machZehnder.isRunning
+      : michelsonMorley.isRunning;
+  const activeConnectionError = isBombTester
+    ? bombTester.connectionError
+    : activeExperiment === "mach-zehnder"
+      ? machZehnder.connectionError
+      : michelsonMorley.connectionError;
+
+  const machMetrics = useMemo(
+    () => [
+      { label: "Total Photons", value: machZehnder.stats.totalExperiments },
+      { label: "Bright Port (A)", value: machZehnder.stats.detectorA, tone: "accent" as const },
+      { label: "Dark Port (B)", value: machZehnder.stats.detectorB },
+      { label: "Phase Shift", value: machZehnder.phaseShift.toFixed(2) },
+      {
+        label: "Preferred Output",
+        value:
+          machZehnder.stats.detectorA === machZehnder.stats.detectorB
+            ? "-"
+            : machZehnder.stats.detectorA > machZehnder.stats.detectorB
+              ? "A"
+              : "B",
+      },
+      { label: "Last Detection", value: machZehnder.stats.lastPath ?? "-" },
+    ],
+    [machZehnder.phaseShift, machZehnder.stats]
+  );
+
+  const michelsonMetrics = useMemo(() => {
+    const visibility =
+      michelsonMorley.stats.totalExperiments > 0
+        ? Math.abs(
+            (michelsonMorley.stats.constructive - michelsonMorley.stats.destructive) /
+              michelsonMorley.stats.totalExperiments
+          ).toFixed(2)
+        : "0.00";
+
+    return [
+      { label: "Total Photons", value: michelsonMorley.stats.totalExperiments },
+      {
+        label: "Bright Detector",
+        value: michelsonMorley.stats.constructive,
+        tone: "accent" as const,
+      },
+      {
+        label: "Dark Output",
+        value: michelsonMorley.stats.destructive,
+        tone: "destructive" as const,
+      },
+      {
+        label: "Arm Length Difference",
+        value: michelsonMorley.armLengthDifference,
+        note: "nm",
+      },
+      { label: "Interference Visibility", value: visibility },
+      { label: "Last Detection", value: michelsonMorley.stats.lastPath ?? "-" },
+    ];
+  }, [michelsonMorley.armLengthDifference, michelsonMorley.stats]);
 
   return (
-    <main className="min-h-screen p-4 md:p-6 lg:p-8">
-      <div className="max-w-7xl mx-auto space-y-6">
-        {/* Header */}
-        <header className="space-y-2">
-          <h1 className="text-2xl md:text-3xl font-bold text-foreground text-balance">
-            Elitzur-Vaidman Bomb Tester
-          </h1>
-          <p className="text-muted-foreground text-pretty max-w-3xl">
-            A quantum mechanics thought experiment demonstrating interaction-free
-            measurement. This interferometer can detect whether a bomb is live
-            without detonating it.
-          </p>
-        </header>
+    <main className="min-h-screen bg-background p-4 md:p-6 lg:p-8">
+      <div className="mx-auto grid max-w-7xl gap-6 lg:grid-cols-[280px_minmax(0,1fr)]">
+        <ExperimentSidebar
+          activeExperiment={activeExperiment}
+          onSelect={setActiveExperiment}
+        />
 
-        {/* Connection Error Alert */}
-        {connectionError && (
-          <Alert variant="destructive">
-            <Info className="h-4 w-4" />
-            <AlertTitle>Connection Error</AlertTitle>
-            <AlertDescription>{connectionError}</AlertDescription>
-          </Alert>
-        )}
+        <div className="space-y-6">
+          <header className="rounded-2xl border border-border bg-card p-6">
+            <h1 className="text-2xl font-bold text-foreground md:text-3xl">
+              {activeContent.title}
+            </h1>
+            <p className="mt-2 max-w-3xl text-muted-foreground">
+              {activeContent.description}
+            </p>
+          </header>
 
-        {/* Main Content */}
-        <div className="grid lg:grid-cols-3 gap-6">
-          {/* Left Column - Diagram */}
-          <div className="lg:col-span-2">
-            <Card>
-              <CardHeader className="pb-3">
-                <CardTitle className="text-base font-semibold">
-                  Interferometer Diagram
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <InterferometerDiagram
-                  currentPath={currentPath}
-                  isRunning={isRunning}
+          {activeConnectionError && (
+            <Alert variant="destructive">
+              <div className="flex items-start gap-3">
+                <Info className="mt-0.5 h-4 w-4 shrink-0" />
+                <div>
+                  <AlertTitle>Connection Error</AlertTitle>
+                  <AlertDescription>{activeConnectionError}</AlertDescription>
+                </div>
+              </div>
+            </Alert>
+          )}
+
+          <div className="grid gap-6 xl:grid-cols-3">
+            <div className="xl:col-span-2">
+              {isBombTester ? (
+                <Card>
+                  <CardHeader className="pb-3">
+                    <CardTitle className="text-base font-semibold">
+                      Interferometer Diagram
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <InterferometerDiagram
+                      currentPath={bombTester.currentPath}
+                      isRunning={bombTester.isRunning}
+                    />
+                  </CardContent>
+                </Card>
+              ) : (
+                <StaticExperimentDiagram
+                  experiment={activeExperiment}
+                  currentPath={activeAnimatedPath}
+                  isRunning={activeIsRunning}
                 />
-              </CardContent>
-            </Card>
-          </div>
+              )}
+            </div>
 
-          {/* Right Column - Controls and Statistics */}
-          <div className="space-y-6">
-            <SimulationControls
-              onRunSingle={handleRunSingle}
-              onRunBatch={handleRunBatch}
-              onReset={handleReset}
-              isRunning={isRunning}
-              batchCount={batchCount}
-              onBatchCountChange={setBatchCount}
-            />
-
-            <StatisticsPanel stats={stats} />
+            <div className="space-y-6">
+              {isBombTester ? (
+                <>
+                  <SimulationControls
+                    onRunSingle={bombTester.runSingle}
+                    onRunBatch={bombTester.runBatch}
+                    onReset={bombTester.reset}
+                    isRunning={bombTester.isRunning}
+                    batchCount={bombTester.batchCount}
+                    onBatchCountChange={bombTester.setBatchCount}
+                  />
+                  <StatisticsPanel stats={bombTester.stats} />
+                </>
+              ) : (
+                activeExperiment === "mach-zehnder" ? (
+                  <StaticExperimentPanel
+                    experiment="mach-zehnder"
+                    onRunSingle={machZehnder.runSingle}
+                    onRunBatch={machZehnder.runBatch}
+                    onReset={machZehnder.reset}
+                    isRunning={machZehnder.isRunning}
+                    batchCount={machZehnder.batchCount}
+                    onBatchCountChange={machZehnder.setBatchCount}
+                    phaseShift={machZehnder.phaseShift}
+                    onPhaseShiftChange={machZehnder.setPhaseShift}
+                    metrics={machMetrics}
+                  />
+                ) : (
+                  <StaticExperimentPanel
+                    experiment="michelson-morley"
+                    onRunSingle={michelsonMorley.runSingle}
+                    onRunBatch={michelsonMorley.runBatch}
+                    onReset={michelsonMorley.reset}
+                    isRunning={michelsonMorley.isRunning}
+                    batchCount={michelsonMorley.batchCount}
+                    onBatchCountChange={michelsonMorley.setBatchCount}
+                    armLengthDifference={michelsonMorley.armLengthDifference}
+                    onArmLengthDifferenceChange={
+                      michelsonMorley.setArmLengthDifference
+                    }
+                    metrics={michelsonMetrics}
+                  />
+                )
+              )}
+            </div>
           </div>
         </div>
-
-        {/* Info Section */}
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-base font-semibold">
-              How It Works
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4 text-sm text-muted-foreground">
-            <p>
-              The Elitzur-Vaidman bomb tester uses quantum superposition to detect
-              bombs without triggering them. A photon enters the interferometer and
-              encounters a beam splitter (BS1), creating a superposition of two
-              paths.
-            </p>
-            <div className="grid md:grid-cols-3 gap-4">
-              <div className="p-3 bg-accent/10 rounded-lg border border-accent/30">
-                <h4 className="font-medium text-accent mb-1">
-                  Safe Detection (D1)
-                </h4>
-                <p className="text-xs">
-                  If detector D1 clicks, we know the bomb is live without it
-                  exploding. This is the &quot;interaction-free measurement.&quot;
-                </p>
-              </div>
-              <div className="p-3 bg-chart-1/10 rounded-lg border border-chart-1/30">
-                <h4 className="font-medium text-chart-1 mb-1">
-                  Inconclusive (D2)
-                </h4>
-                <p className="text-xs">
-                  Detector D2 clicking does not tell us whether the bomb is live or
-                  a dud. We need to test again.
-                </p>
-              </div>
-              <div className="p-3 bg-destructive/10 rounded-lg border border-destructive/30">
-                <h4 className="font-medium text-destructive mb-1">
-                  Explosion
-                </h4>
-                <p className="text-xs">
-                  If the photon takes Path B and the bomb is live, it explodes. We
-                  lose the bomb but confirm it was live.
-                </p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
       </div>
     </main>
   );

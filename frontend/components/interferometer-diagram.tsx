@@ -5,8 +5,8 @@ import { useEffect, useRef, useState } from "react";
 interface PhotonPath {
   id: number;
   path: "A" | "B";
-  exploded: boolean;
-  safe: boolean;
+  exploded?: boolean;
+  safe?: boolean;
 }
 
 interface InterferometerDiagramProps {
@@ -114,25 +114,25 @@ export function InterferometerDiagram({
         <rect width="100%" height="100%" fill="url(#grid)" opacity="0.3" />
 
         {/* Labels */}
-        <text x="30" y="205" className="fill-muted-foreground text-xs">
+        <text x="50" y="232" textAnchor="middle" className="fill-muted-foreground text-xs">
           Source
         </text>
-        <text x="135" y="185" className="fill-muted-foreground text-xs">
+        <text x="150" y="232" textAnchor="middle" className="fill-muted-foreground text-xs">
           BS1
         </text>
-        <text x="135" y="85" className="fill-muted-foreground text-xs">
+        <text x="150" y="80" textAnchor="middle" className="fill-muted-foreground text-xs">
           M1
         </text>
-        <text x="295" y="215" className="fill-muted-foreground text-xs">
+        <text x="300" y="232" textAnchor="middle" className="fill-muted-foreground text-xs">
           Bomb
         </text>
-        <text x="285" y="85" className="fill-muted-foreground text-xs">
+        <text x="300" y="80" textAnchor="middle" className="fill-muted-foreground text-xs">
           BS2
         </text>
-        <text x="370" y="105" className="fill-muted-foreground text-xs">
+        <text x="380" y="126" textAnchor="middle" className="fill-muted-foreground text-xs">
           D1
         </text>
-        <text x="285" y="45" className="fill-muted-foreground text-xs">
+        <text x="300" y="26" textAnchor="middle" className="fill-muted-foreground text-xs">
           D2
         </text>
 

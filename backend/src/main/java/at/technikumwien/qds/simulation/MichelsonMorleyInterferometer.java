@@ -7,6 +7,7 @@ public class MichelsonMorleyInterferometer implements Interferometer
 {
     private final Detector detector;
     private double armLengthDifference;
+    private String lastMeasuredPath = "A";
 
     // Statistics
     private int constructiveCount = 0;
@@ -43,6 +44,7 @@ public class MichelsonMorleyInterferometer implements Interferometer
             // interference
             photon.applyBeamSplitter();
             String result = photon.measure();
+            lastMeasuredPath = result;
 
 
             if (result.equals("A"))
@@ -90,6 +92,27 @@ public class MichelsonMorleyInterferometer implements Interferometer
         constructiveCount = 0;
         destructiveCount = 0;
         totalRuns = 0;
+        lastMeasuredPath = "A";
         detector.reset();
+    }
+
+    public int getConstructiveCount()
+    {
+        return constructiveCount;
+    }
+
+    public int getDestructiveCount()
+    {
+        return destructiveCount;
+    }
+
+    public int getTotalRuns()
+    {
+        return totalRuns;
+    }
+
+    public String getLastMeasuredPath()
+    {
+        return lastMeasuredPath;
     }
 }
