@@ -20,4 +20,5 @@ Thumbs.db
 .vscode/
 
 # === LOGS ===
-*.log
+*.log.codex
+backend/target/

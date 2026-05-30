@@ -3,6 +3,7 @@ package at.technikumwien.qds.controller;
 import at.technikumwien.qds.simulation.BombTesterInterferometer;
 import at.technikumwien.qds.simulation.MachZehnderInterferometer;
 import at.technikumwien.qds.simulation.MichelsonMorleyInterferometer;
+import at.technikumwien.qds.simulation.QuantumEraserInterferometer;
 import at.technikumwien.qds.model.Bomb;
 import at.technikumwien.qds.model.Photon;
 
@@ -69,6 +70,43 @@ public class SimulationController {
         result.put("destructive", setup.getDestructiveCount());
         result.put("totalRuns", setup.getTotalRuns());
         result.put("armLengthDifference", armLengthDifference);
+
+        return result;
+    }
+
+    @GetMapping("/quantum-eraser/run")
+    public Map<String, Object> runQuantumEraserSimulation(
+            @RequestParam(defaultValue = "0.0") double phaseShift,
+            @RequestParam(defaultValue = "true") boolean eraseWhichPath,
+            @RequestParam(defaultValue = "1") int shots) {
+        QuantumEraserInterferometer setup =
+                new QuantumEraserInterferometer(phaseShift, eraseWhichPath);
+
+        int runCount = Math.max(1, shots);
+        for (int i = 0; i < runCount; i++)
+        {
+            setup.runExperiment(new Photon("QE-Photon-" + i));
+        }
+
+        Map<String, Object> result = new HashMap<>();
+        result.put("phaseShift", phaseShift);
+        result.put("eraseWhichPath", eraseWhichPath);
+        result.put("shots", runCount);
+        result.put("signalDetector", setup.getLastSignalDetector());
+        result.put("idlerOutcome", setup.getLastIdlerOutcome());
+        result.put("detectorD0", setup.getDetectorD0Count());
+        result.put("detectorD1", setup.getDetectorD1Count());
+        result.put("eraserPlus", setup.getEraserPlusCount());
+        result.put("eraserMinus", setup.getEraserMinusCount());
+        result.put("whichPathA", setup.getWhichPathACount());
+        result.put("whichPathB", setup.getWhichPathBCount());
+        result.put("totalRuns", setup.getTotalRuns());
+        result.put("observedD0Probability", setup.getObservedD0Probability());
+        result.put("observedD1Probability", setup.getObservedD1Probability());
+        result.put("conditionalD0GivenErasedPlus", setup.getConditionalD0ProbabilityForErasedPlus());
+        result.put("conditionalD1GivenErasedPlus", setup.getConditionalD1ProbabilityForErasedPlus());
+        result.put("conditionalD0GivenErasedMinus", setup.getConditionalD0ProbabilityForErasedMinus());
+        result.put("conditionalD1GivenErasedMinus", setup.getConditionalD1ProbabilityForErasedMinus());
 
         return result;
     }
