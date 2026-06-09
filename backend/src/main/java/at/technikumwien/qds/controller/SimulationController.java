@@ -14,7 +14,7 @@ import java.util.*;
 @RestController
 @RequestMapping("/api/simulation")
 @CrossOrigin(origins = "http://localhost:3000")
-@Tag(name = "Simulation", description = "Quantum bomb tester simulation endpoints")
+@Tag(name = "Simulation")
 public class SimulationController {
 
     @GetMapping("/run")
@@ -78,9 +78,10 @@ public class SimulationController {
     public Map<String, Object> runQuantumEraserSimulation(
             @RequestParam(defaultValue = "0.0") double phaseShift,
             @RequestParam(defaultValue = "true") boolean eraseWhichPath,
+            @RequestParam(defaultValue = "false") boolean delayedChoice,
             @RequestParam(defaultValue = "1") int shots) {
         QuantumEraserInterferometer setup =
-                new QuantumEraserInterferometer(phaseShift, eraseWhichPath);
+                new QuantumEraserInterferometer(phaseShift, eraseWhichPath, delayedChoice);
 
         int runCount = Math.max(1, shots);
         for (int i = 0; i < runCount; i++)
@@ -91,6 +92,8 @@ public class SimulationController {
         Map<String, Object> result = new HashMap<>();
         result.put("phaseShift", phaseShift);
         result.put("eraseWhichPath", eraseWhichPath);
+        result.put("delayedChoice", delayedChoice);
+        result.put("measurementOrder", setup.getMeasurementOrder());
         result.put("shots", runCount);
         result.put("signalDetector", setup.getLastSignalDetector());
         result.put("idlerOutcome", setup.getLastIdlerOutcome());
@@ -107,6 +110,8 @@ public class SimulationController {
         result.put("conditionalD1GivenErasedPlus", setup.getConditionalD1ProbabilityForErasedPlus());
         result.put("conditionalD0GivenErasedMinus", setup.getConditionalD0ProbabilityForErasedMinus());
         result.put("conditionalD1GivenErasedMinus", setup.getConditionalD1ProbabilityForErasedMinus());
+        result.put("eraserPlusGivenD0", setup.getEraserPlusProbabilityGivenD0());
+        result.put("eraserPlusGivenD1", setup.getEraserPlusProbabilityGivenD1());
 
         return result;
     }
