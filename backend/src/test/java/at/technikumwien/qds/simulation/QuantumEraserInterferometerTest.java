@@ -37,7 +37,7 @@ class QuantumEraserInterferometerTest
     @DisplayName("Running many erased shots keeps the overall signal distribution balanced")
     void testErasedExperimentBalancesWithoutCoincidenceFiltering()
     {
-        QuantumEraserInterferometer setup = new QuantumEraserInterferometer(Math.PI / 2.0, true);
+        QuantumEraserInterferometer setup = new QuantumEraserInterferometer(Math.PI / 2.0, true, true);
 
         for (int i = 0; i < 2_000; i++)
         {
@@ -48,5 +48,41 @@ class QuantumEraserInterferometerTest
         assertTrue(setup.getDetectorD0Count() > 850 && setup.getDetectorD0Count() < 1150);
         assertTrue(setup.getDetectorD1Count() > 850 && setup.getDetectorD1Count() < 1150);
         assertEquals(2_000, setup.getDetectorD0Count() + setup.getDetectorD1Count());
+    }
+
+    @Test
+    @DisplayName("Delayed choice measures the signal before the idler choice")
+    void testDelayedChoiceMeasurementOrder()
+    {
+        QuantumEraserInterferometer setup = new QuantumEraserInterferometer(0.0, true, true);
+
+        assertTrue(setup.isDelayedChoice());
+        assertEquals("SIGNAL_FIRST_IDLER_DELAYED", setup.getMeasurementOrder());
+    }
+
+    @Test
+    @DisplayName("Delayed erasure sorts already detected signals into interference subensembles")
+    void testDelayedChoiceKeepsSignalFlatButCorrelatesLaterEraserResult()
+    {
+        QuantumEraserInterferometer setup = new QuantumEraserInterferometer(0.0, true, true);
+
+        for (int i = 0; i < 2_000; i++)
+        {
+            setup.runExperiment(new Photon("dcqe-" + i));
+
+            if ("D0".equals(setup.getLastSignalDetector()))
+            {
+                assertEquals("ERASED_PLUS", setup.getLastIdlerOutcome());
+            }
+            else
+            {
+                assertEquals("ERASED_MINUS", setup.getLastIdlerOutcome());
+            }
+        }
+
+        assertEquals(0.5, setup.getObservedD0Probability(), DELTA);
+        assertEquals(0.5, setup.getObservedD1Probability(), DELTA);
+        assertTrue(setup.getDetectorD0Count() > 850 && setup.getDetectorD0Count() < 1150);
+        assertTrue(setup.getDetectorD1Count() > 850 && setup.getDetectorD1Count() < 1150);
     }
 }

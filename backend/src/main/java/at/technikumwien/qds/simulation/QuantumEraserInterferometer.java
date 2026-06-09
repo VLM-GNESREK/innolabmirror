@@ -18,16 +18,24 @@ public class QuantumEraserInterferometer implements Interferometer
 
     private final double phaseShift;
     private final boolean eraseWhichPath;
+    private final boolean delayedChoice;
 
+    //Delayed Choice is off per default
     public QuantumEraserInterferometer()
     {
-        this(0.0, true);
+        this(0.0, true, false);
     }
 
     public QuantumEraserInterferometer(double phaseShift, boolean eraseWhichPath)
     {
+        this(phaseShift, eraseWhichPath, false);
+    }
+
+    public QuantumEraserInterferometer(double phaseShift, boolean eraseWhichPath, boolean delayedChoice)
+    {
         this.phaseShift = phaseShift;
         this.eraseWhichPath = eraseWhichPath;
+        this.delayedChoice = delayedChoice;
     }
 
     @Override
@@ -39,6 +47,12 @@ public class QuantumEraserInterferometer implements Interferometer
         }
 
         totalRuns++;
+
+        if (delayedChoice)
+        {
+            runDelayedChoiceExperiment();
+            return;
+        }
 
         double detectorD0Probability;
         if (eraseWhichPath)
@@ -87,6 +101,50 @@ public class QuantumEraserInterferometer implements Interferometer
         }
     }
 
+    private void runDelayedChoiceExperiment()
+    {
+        boolean hitD0 = Math.random() < getObservedD0Probability();
+        lastSignalDetector = hitD0 ? "D0" : "D1";
+
+        if (hitD0)
+        {
+            detectorD0Count++;
+        }
+        else
+        {
+            detectorD1Count++;
+        }
+
+        if (eraseWhichPath)
+        {
+            boolean plusOutcome = Math.random() < getEraserPlusProbabilityGivenSignal(hitD0);
+            lastIdlerOutcome = plusOutcome ? "ERASED_PLUS" : "ERASED_MINUS";
+
+            if (plusOutcome)
+            {
+                eraserPlusCount++;
+            }
+            else
+            {
+                eraserMinusCount++;
+            }
+        }
+        else
+        {
+            boolean pathAOutcome = Math.random() < 0.5;
+            lastIdlerOutcome = pathAOutcome ? "PATH_A" : "PATH_B";
+
+            if (pathAOutcome)
+            {
+                whichPathACount++;
+            }
+            else
+            {
+                whichPathBCount++;
+            }
+        }
+    }
+
     public double getConditionalD0ProbabilityForErasedPlus()
     {
         return (1.0 + Math.cos(phaseShift)) / 2.0;
@@ -109,17 +167,47 @@ public class QuantumEraserInterferometer implements Interferometer
 
     public double getObservedD0Probability()
     {
-        return eraseWhichPath ? 0.5 : 0.5;
+        return 0.5;
     }
 
     public double getObservedD1Probability()
     {
-        return 1.0 - getObservedD0Probability();
+        return 0.5;
+    }
+
+    public double getEraserPlusProbabilityGivenD0()
+    {
+        return getConditionalD0ProbabilityForErasedPlus();
+    }
+
+    public double getEraserPlusProbabilityGivenD1()
+    {
+        return getConditionalD1ProbabilityForErasedPlus();
+    }
+
+    private double getEraserPlusProbabilityGivenSignal(boolean hitD0)
+    {
+        if (hitD0)
+        {
+            return getEraserPlusProbabilityGivenD0();
+        }
+
+        return getEraserPlusProbabilityGivenD1();
     }
 
     public boolean isEraseWhichPath()
     {
         return eraseWhichPath;
+    }
+
+    public boolean isDelayedChoice()
+    {
+        return delayedChoice;
+    }
+
+    public String getMeasurementOrder()
+    {
+        return delayedChoice ? "SIGNAL_FIRST_IDLER_DELAYED" : "IDLER_CHOICE_BEFORE_SIGNAL";
     }
 
     public double getPhaseShift()
