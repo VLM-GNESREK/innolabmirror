@@ -6,6 +6,7 @@ import at.technikumwien.qds.simulation.MichelsonMorleyInterferometer;
 import at.technikumwien.qds.simulation.QuantumEraserInterferometer;
 import at.technikumwien.qds.model.Bomb;
 import at.technikumwien.qds.model.Photon;
+import at.technikumwien.qds.simulation.BB84Simulation;
 
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.web.bind.annotation.*;
@@ -72,6 +73,15 @@ public class SimulationController {
         result.put("armLengthDifference", armLengthDifference);
 
         return result;
+    }
+
+    @GetMapping("/bb84/run")
+    public Map<String, Object> runBB84Simulation(
+            @RequestParam(defaultValue = "100") int numQbits,
+            @RequestParam(defaultValue = "false") boolean evePresent) 
+    {
+        BB84Simulation simulation = new BB84Simulation(numQbits, evePresent);
+        return simulation.run();
     }
 
     @GetMapping("/quantum-eraser/run")
