@@ -1,23 +1,38 @@
-## How to use:
-The Quantum Discovery Simulator includes a Docker setup that demonstrates that the application can run in a containerized environment.
+# Quantum Discovery Simulator
 
-The provided docker-compose.yml is intended for runtime demonstration only, **not for development**. This might change in the future.
-For local development, the frontend and backend should be started directly (npm run dev etc.) to enable faster iteration and hot reload.
+The Quantum Discovery Simulator utilises a dual Docker Compose setup to provide both a containerised development environment with hot-reloading and a packaged production environment.
 
-````bash
-mvn clean package #Only if you changed backend dependencies
-````
-Then: (This will take a while at the first..)
-````bash
-docker compose up --build
-````
-App is reachable via:
-Frontend: http://localhost:3000
-Backend API: http://localhost:8080
+## Development Environment
 
-To end the app:
-````bash
-docker compose down
-````
+This configuration mounts your local source code into the containers. Changes made to the frontend or backend code will automatically trigger a reload, eliminating the need to run local package managers outside of Docker.
 
-For devs:
+To start the development environment:
+```bash
+docker compose -f docker-compose.dev.yml up --build
+```
+*Note: The backend container leverages Maven volume caching, so the initial build will download dependencies, but subsequent startups will be much faster.*
+
+## Production / Runnable Application
+
+This configuration uses multi-stage Docker builds to compile and package the application into lightweight, immutable containers. No local code volumes are mounted, ensuring the application runs exactly as packaged.
+
+To build and run the production application in the background:
+```bash
+docker compose -f docker-compose.prod.yml up --build -d
+```
+
+## Accessing the Application
+
+Regardless of the environment you are running, the application services are available at:
+- Frontend: http://localhost:3000
+- Backend API: http://localhost:8080
+
+## Stopping the Application
+To shut down the running containers, use the `down` command corresponding to your active configuration file:
+```bash
+# To stop the development environment:
+docker compose -f docker-compose.dev.yml down
+
+# To stop the production environment:
+docker compose -f docker-compose.prod.yml down
+```
